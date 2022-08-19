@@ -104,14 +104,14 @@ public class Main {
         Main.SetAlarm(0);
         while (true) {
             //这里加入控制台输入控制，是为了保持连接状态，当输入Y表示布防结束
-            System.out.print("请选择是否撤出布防(Y/N)：");
-            Scanner input = new Scanner(System.in);
-            String str = input.next();
-            if (str.equals("Y")) {
-                break;
-            }
+//            System.out.print("请选择是否撤出布防(Y/N)：");
+//            Scanner input = new Scanner(System.in);
+//            String str = input.next();
+//            if (str.equals("Y")) {
+//                break;
+//            }
         }
-        Main.Logout(0);
+//        Main.Logout(0);
     }
 
 

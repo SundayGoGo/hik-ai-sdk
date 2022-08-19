@@ -1,7 +1,7 @@
-
 package com.company;
 
 import com.company.CommonMethod.CommonUtil;
+import com.company.util.UploadUtil;
 import com.sun.jna.Pointer;
 
 import java.io.FileNotFoundException;
@@ -14,13 +14,16 @@ import java.util.Date;
 
 
 public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
+
+    private UploadUtil uploadUtil = new UploadUtil();
+
     //报警信息回调函数
-    public boolean invoke(int lCommand, HCNetSDK.NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser) {
+    public boolean invoke(int lCommand, HCNetSDK.NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser) throws IOException {
         AlarmDataHandle(lCommand, pAlarmer, pAlarmInfo, dwBufLen, pUser);
         return true;
     }
 
-    public void AlarmDataHandle(int lCommand, HCNetSDK.NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser) {
+    public void AlarmDataHandle(int lCommand, HCNetSDK.NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser) throws IOException {
         System.out.println("报警事件类型： lCommand:" + Integer.toHexString(lCommand));
         String sTime;
         String MonitoringSiteID;
@@ -36,7 +39,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 try {
                     String sLicense = new String(strItsPlateResult.struPlateInfo.sLicense, "GBK");
                     byte VehicleType = strItsPlateResult.byVehicleType;  //0-其他车辆，1-小型车，2-大型车，3- 行人触发，4- 二轮车触发，5- 三轮车触发，6- 机动车触发
-                     MonitoringSiteID = new String(strItsPlateResult.byMonitoringSiteID);
+                    MonitoringSiteID = new String(strItsPlateResult.byMonitoringSiteID);
                     System.out.println("车牌号：" + sLicense + ":车辆类型：" + VehicleType + ":监控点编号：" + MonitoringSiteID);
                 } catch (UnsupportedEncodingException e1) {
                     // TODO Auto-generated catch block
@@ -74,7 +77,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     }
                 }
                 break;
-            case HCNetSDK.COMM_ALARM_TFS : //道路违章取证报警
+            case HCNetSDK.COMM_ALARM_TFS: //道路违章取证报警
                 HCNetSDK.NET_DVR_TFS_ALARM strTfsAlarm = new HCNetSDK.NET_DVR_TFS_ALARM();
                 strTfsAlarm.write();
                 Pointer pTfsAlarm = strTfsAlarm.getPointer();
@@ -82,11 +85,11 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 strTfsAlarm.read();
                 sTime = CommonUtil.parseTime(strTfsAlarm.dwAbsTime); //报警绝对时间
                 int IllegalType = strTfsAlarm.dwIllegalType; // 违章类型
-                MonitoringSiteID=strTfsAlarm.byMonitoringSiteID.toString(); //监控点编号
+                MonitoringSiteID = strTfsAlarm.byMonitoringSiteID.toString(); //监控点编号
                 // 车牌信息
                 try {
-                    String PlateInfo="车牌号："+new String(strTfsAlarm.struPlateInfo.sLicense, "GBK");
-                    System.out.println("【道路违章取证报警】时间："+sTime+"违章类型："+IllegalType+"车牌信息："+PlateInfo);
+                    String PlateInfo = "车牌号：" + new String(strTfsAlarm.struPlateInfo.sLicense, "GBK");
+                    System.out.println("【道路违章取证报警】时间：" + sTime + "违章类型：" + IllegalType + "车牌信息：" + PlateInfo);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -123,35 +126,35 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pstrAIDAlarmV41 = strAIDAlarmV41.getPointer();
                 pstrAIDAlarmV41.write(0, pAlarmInfo.getByteArray(0, strAIDAlarmV41.size()), 0, strAIDAlarmV41.size());
                 strAIDAlarmV41.read();
-                sTime=CommonUtil.parseTime(strAIDAlarmV41.dwAbsTime); //报警触发绝对时间
-                 MonitoringSiteID=strAIDAlarmV41.byMonitoringSiteID.toString(); //监控点编号
-                int AIDType=strAIDAlarmV41.struAIDInfo.dwAIDType; //    交通事件类型
-                int AIDTypeEx=strAIDAlarmV41.struAIDInfo.dwAIDTypeEx; //交通事件类型扩展
-                System.out.println("【道路事件检测】"+"时间："+sTime+"监控点："+MonitoringSiteID+"交通事件类型："+AIDType+"交通事件类型扩展："+AIDTypeEx);
+                sTime = CommonUtil.parseTime(strAIDAlarmV41.dwAbsTime); //报警触发绝对时间
+                MonitoringSiteID = strAIDAlarmV41.byMonitoringSiteID.toString(); //监控点编号
+                int AIDType = strAIDAlarmV41.struAIDInfo.dwAIDType; //    交通事件类型
+                int AIDTypeEx = strAIDAlarmV41.struAIDInfo.dwAIDTypeEx; //交通事件类型扩展
+                System.out.println("【道路事件检测】" + "时间：" + sTime + "监控点：" + MonitoringSiteID + "交通事件类型：" + AIDType + "交通事件类型扩展：" + AIDTypeEx);
                 //报警图片信息
-                    if (strAIDAlarmV41.dwPicDataLen > 0 &&strAIDAlarmV41.pImage != null) {
-                        SimpleDateFormat sf = new SimpleDateFormat("yyyyMMddHHmmss");
-                        String newName = sf.format(new Date());
-                        FileOutputStream fout;
-                        try {
-                            String filename = "../pic/" + newName + "_AIDalarm.jpg";
-                            fout = new FileOutputStream(filename);
-                            //将字节写入文件
-                            long offset = 0;
-                            ByteBuffer buffers = strAIDAlarmV41.pImage.getByteBuffer(offset, strAIDAlarmV41.dwPicDataLen);
-                            byte[] bytes = new byte[strAIDAlarmV41.dwPicDataLen];
-                            buffers.rewind();
-                            buffers.get(bytes);
-                            fout.write(bytes);
-                            fout.close();
-                        } catch (FileNotFoundException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
+                if (strAIDAlarmV41.dwPicDataLen > 0 && strAIDAlarmV41.pImage != null) {
+                    SimpleDateFormat sf = new SimpleDateFormat("yyyyMMddHHmmss");
+                    String newName = sf.format(new Date());
+                    FileOutputStream fout;
+                    try {
+                        String filename = "../pic/" + newName + "_AIDalarm.jpg";
+                        fout = new FileOutputStream(filename);
+                        //将字节写入文件
+                        long offset = 0;
+                        ByteBuffer buffers = strAIDAlarmV41.pImage.getByteBuffer(offset, strAIDAlarmV41.dwPicDataLen);
+                        byte[] bytes = new byte[strAIDAlarmV41.dwPicDataLen];
+                        buffers.rewind();
+                        buffers.get(bytes);
+                        fout.write(bytes);
+                        fout.close();
+                    } catch (FileNotFoundException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
                     }
+                }
                 break;
             case HCNetSDK.COMM_ALARM_TPS_V41://交通数据统计的报警
                 HCNetSDK.NET_DVR_TPS_ALARM_V41 strTPSalarmV41 = new HCNetSDK.NET_DVR_TPS_ALARM_V41();
@@ -159,21 +162,20 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pstrTPSalarmV41 = strTPSalarmV41.getPointer();
                 pstrTPSalarmV41.write(0, pAlarmInfo.getByteArray(0, strTPSalarmV41.size()), 0, strTPSalarmV41.size());
                 strTPSalarmV41.read();
-                sTime= CommonUtil.parseTime(strTPSalarmV41.dwAbsTime);
-                MonitoringSiteID=strTPSalarmV41.byMonitoringSiteID.toString(); //监控点编号
-                String StartTime=CommonUtil.parseTime(strTPSalarmV41.dwStartTime); //开始统计时间；
-                String StopTime=CommonUtil.parseTime(strTPSalarmV41.dwStopTime); //结束统计时间；
-                System.out.println("【交通数据统计】"+"时间："+sTime+"监控点编号："+MonitoringSiteID+"开始统计时间："+StartTime+"结束统计时间："+StopTime);
+                sTime = CommonUtil.parseTime(strTPSalarmV41.dwAbsTime);
+                MonitoringSiteID = strTPSalarmV41.byMonitoringSiteID.toString(); //监控点编号
+                String StartTime = CommonUtil.parseTime(strTPSalarmV41.dwStartTime); //开始统计时间；
+                String StopTime = CommonUtil.parseTime(strTPSalarmV41.dwStopTime); //结束统计时间；
+                System.out.println("【交通数据统计】" + "时间：" + sTime + "监控点编号：" + MonitoringSiteID + "开始统计时间：" + StartTime + "结束统计时间：" + StopTime);
                 //车道统计参数信息
-                for (int i=0;i<=HCNetSDK.MAX_TPS_RULE;i++)
-                {
-                    byte LaneNo=strTPSalarmV41.struTPSInfo.struLaneParam[i].byLaneNo; //车道号
-                    byte TrafficState=strTPSalarmV41.struTPSInfo.struLaneParam[i].byTrafficState; //车道状态 0-无效，1-畅通，2-拥挤，3-堵塞
-                    int TpsType=strTPSalarmV41.struTPSInfo.struLaneParam[i].dwTpsType; //数据变化类型标志，表示当前上传的统计参数中，哪些数据有效，按位区分
-                    int LaneVolume=strTPSalarmV41.struTPSInfo.struLaneParam[i].dwLaneVolume; //车道流量
-                    int LaneVelocity=strTPSalarmV41.struTPSInfo.struLaneParam[i].dwLaneVelocity; //车道平均速度
-                    float SpaceOccupyRation=strTPSalarmV41.struTPSInfo.struLaneParam[i].fSpaceOccupyRation;  //车道占有率，百分比计算（空间上，车辆长度与监控路段总长度的比值)
-                    System.out.println("车道号："+LaneNo+"车道状态："+TrafficState+"车道流量："+LaneVolume+"车道占有率："+SpaceOccupyRation+"\n");
+                for (int i = 0; i <= HCNetSDK.MAX_TPS_RULE; i++) {
+                    byte LaneNo = strTPSalarmV41.struTPSInfo.struLaneParam[i].byLaneNo; //车道号
+                    byte TrafficState = strTPSalarmV41.struTPSInfo.struLaneParam[i].byTrafficState; //车道状态 0-无效，1-畅通，2-拥挤，3-堵塞
+                    int TpsType = strTPSalarmV41.struTPSInfo.struLaneParam[i].dwTpsType; //数据变化类型标志，表示当前上传的统计参数中，哪些数据有效，按位区分
+                    int LaneVolume = strTPSalarmV41.struTPSInfo.struLaneParam[i].dwLaneVolume; //车道流量
+                    int LaneVelocity = strTPSalarmV41.struTPSInfo.struLaneParam[i].dwLaneVelocity; //车道平均速度
+                    float SpaceOccupyRation = strTPSalarmV41.struTPSInfo.struLaneParam[i].fSpaceOccupyRation;  //车道占有率，百分比计算（空间上，车辆长度与监控路段总长度的比值)
+                    System.out.println("车道号：" + LaneNo + "车道状态：" + TrafficState + "车道流量：" + LaneVolume + "车道占有率：" + SpaceOccupyRation + "\n");
                 }
                 break;
             case HCNetSDK.COMM_ALARM_TPS_REAL_TIME: //实时过车数据数据
@@ -182,13 +184,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pItsParkVehicle = netDvrTpsParam.getPointer();
                 pItsParkVehicle.write(0, pAlarmInfo.getByteArray(0, netDvrTpsParam.size()), 0, netDvrTpsParam.size());
                 netDvrTpsParam.read();
-                String struTime = "" + String.format("%04d", netDvrTpsParam.struTime.wYear) +
-                        String.format("%02d", netDvrTpsParam.struTime.byMonth) +
-                        String.format("%02d", netDvrTpsParam.struTime.byDay) +
-                        String.format("%02d", netDvrTpsParam.struTime.byDay) +
-                        String.format("%02d", netDvrTpsParam.struTime.byHour) +
-                        String.format("%02d", netDvrTpsParam.struTime.byMinute) +
-                        String.format("%02d", netDvrTpsParam.struTime.bySecond);
+                String struTime = "" + String.format("%04d", netDvrTpsParam.struTime.wYear) + String.format("%02d", netDvrTpsParam.struTime.byMonth) + String.format("%02d", netDvrTpsParam.struTime.byDay) + String.format("%02d", netDvrTpsParam.struTime.byDay) + String.format("%02d", netDvrTpsParam.struTime.byHour) + String.format("%02d", netDvrTpsParam.struTime.byMinute) + String.format("%02d", netDvrTpsParam.struTime.bySecond);
                 Short wDeviceID = new Short(netDvrTpsParam.struTPSRealTimeInfo.wDeviceID);//设备ID
                 int channel = netDvrTpsParam.dwChan; //触发报警通道号
                 String byLane = new String(String.valueOf(netDvrTpsParam.struTPSRealTimeInfo.byLane)).trim();// 对应车道号
@@ -206,13 +202,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 netDvrTpsStatisticsInfo.read();
                 int Tpschannel = netDvrTpsStatisticsInfo.dwChan; //触发报警通道号
                 //统计开始时间
-                String struStartTime = "" + String.format("%04d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.wYear) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byMonth) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byDay) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byDay) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byHour) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byMinute) +
-                        String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.bySecond);
+                String struStartTime = "" + String.format("%04d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.wYear) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byMonth) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byDay) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byDay) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byHour) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.byMinute) + String.format("%02d", netDvrTpsStatisticsInfo.struTPSStatisticsInfo.struStartTime.bySecond);
                 byte TotalLaneNum = netDvrTpsStatisticsInfo.struTPSStatisticsInfo.byTotalLaneNum; //有效车道总数
                 System.out.println("通道号：" + Tpschannel + "; 开始统计时间：" + struStartTime + "有效车道总数：" + TotalLaneNum);
                 break;
@@ -224,10 +214,10 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 strParkVehicle.read();
                 try {
                     byte ParkError = strParkVehicle.byParkError; //停车异常：0- 正常，1- 异常
-                    String ParkingNo = new String(strParkVehicle.byParkingNo,"UTF-8"); //车位编号
-                    byte LocationStatus= strParkVehicle.byLocationStatus; //车位车辆状态 0- 无车，1- 有车
-                    MonitoringSiteID=strParkVehicle.byMonitoringSiteID.toString();
-                    String plateNo=new String(strParkVehicle.struPlateInfo.sLicense,"GBK"); //车牌号
+                    String ParkingNo = new String(strParkVehicle.byParkingNo, "UTF-8"); //车位编号
+                    byte LocationStatus = strParkVehicle.byLocationStatus; //车位车辆状态 0- 无车，1- 有车
+                    MonitoringSiteID = strParkVehicle.byMonitoringSiteID.toString();
+                    String plateNo = new String(strParkVehicle.struPlateInfo.sLicense, "GBK"); //车牌号
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -265,19 +255,12 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 pstrCIDalarm.write(0, pAlarmInfo.getByteArray(0, strCIDalarm.size()), 0, strCIDalarm.size());
                 strCIDalarm.read();
                 try {
-                    String TriggerTime  = "" + String.format("%04d", strCIDalarm.struTriggerTime.wYear) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.byMonth) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.byDay) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.byDay) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.byHour) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.byMinute) +
-                            String.format("%02d", strCIDalarm.struTriggerTime.bySecond);  //触发报警时间
-                    String sCIDCode = new String(strCIDalarm.sCIDCode,"GBK"); //CID事件号
-                    String sCIDDescribe = new String(strCIDalarm.sCIDDescribe,"GBK"); //CID事件名
+                    String TriggerTime = "" + String.format("%04d", strCIDalarm.struTriggerTime.wYear) + String.format("%02d", strCIDalarm.struTriggerTime.byMonth) + String.format("%02d", strCIDalarm.struTriggerTime.byDay) + String.format("%02d", strCIDalarm.struTriggerTime.byDay) + String.format("%02d", strCIDalarm.struTriggerTime.byHour) + String.format("%02d", strCIDalarm.struTriggerTime.byMinute) + String.format("%02d", strCIDalarm.struTriggerTime.bySecond);  //触发报警时间
+                    String sCIDCode = new String(strCIDalarm.sCIDCode, "GBK"); //CID事件号
+                    String sCIDDescribe = new String(strCIDalarm.sCIDDescribe, "GBK"); //CID事件名
                     byte bySubSysNo = strCIDalarm.bySubSysNo; //子系统号；
                     short wDefenceNo = strCIDalarm.wDefenceNo; //防区编号
-                    System.out.println("【CID事件】"+"触发时间："+TriggerTime+"CID事件号："+sCIDCode+"CID事件名："+sCIDDescribe+"子系统号："+
-                            bySubSysNo+"防区编号："+wDefenceNo);
+                    System.out.println("【CID事件】" + "触发时间：" + TriggerTime + "CID事件号：" + sCIDCode + "CID事件名：" + sCIDDescribe + "子系统号：" + bySubSysNo + "防区编号：" + wDefenceNo);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -293,16 +276,16 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 struEventISAPI.read();
                 String sAlarmInfo = new String(pAlarmer.sDeviceIP);
                 //报警数据类型：0- invalid，1- xml，2- json
-                sAlarmInfo = "报警设备IP：" + sAlarmInfo + "：ISAPI协议报警信息, 数据格式:" + struEventISAPI.byDataType +
-                        ", 图片个数:" + struEventISAPI.byPicturesNumber;
+                sAlarmInfo = "报警设备IP：" + sAlarmInfo + "：ISAPI协议报警信息, 数据格式:" + struEventISAPI.byDataType + ", 图片个数:" + struEventISAPI.byPicturesNumber;
                 System.out.println(sAlarmInfo);
 
                 //报警数据保存
                 SimpleDateFormat sf1 = new SimpleDateFormat("yyyyMMddHHmmss");
                 String curTime1 = sf1.format(new Date());
                 FileOutputStream foutdata;
+                String jsonfilename = "";
                 try {
-                    String jsonfilename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + curTime1 + "_ISAPI_Alarm_" + ".json";
+                    jsonfilename = "pic/" + new String(pAlarmer.sDeviceIP).trim() + curTime1 + "_ISAPI_Alarm_" + ".json";
                     foutdata = new FileOutputStream(jsonfilename);
                     //将字节写入文件
                     ByteBuffer jsonbuffers = struEventISAPI.pAlarmData.getByteBuffer(0, struEventISAPI.dwAlarmDataLen);
@@ -319,6 +302,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     e.printStackTrace();
                 }
                 //图片数据保存
+                String picFilename = "";
                 for (int i = 0; i < struEventISAPI.byPicturesNumber; i++) {
                     HCNetSDK.NET_DVR_ALARM_ISAPI_PICDATA struPicData = new HCNetSDK.NET_DVR_ALARM_ISAPI_PICDATA();
                     struPicData.write();
@@ -328,9 +312,8 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
 
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + curTime1 +
-                                "_ISAPIPic_" + i + "_" + new String(struPicData.szFilename).trim() + ".jpg";
-                        fout = new FileOutputStream(filename);
+                        picFilename = "pic/" + new String(pAlarmer.sDeviceIP).trim() + curTime1 + "_ISAPIPic_" + i + "_" + new String(struPicData.szFilename).trim() + ".jpg";
+                        fout = new FileOutputStream(picFilename);
                         //将字节写入文件
                         long offset = 0;
                         ByteBuffer buffers = struPicData.pPicData.getByteBuffer(offset, struPicData.dwPicLen);
@@ -347,6 +330,8 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                         e.printStackTrace();
                     }
                 }
+                // TODO: 保存数据
+                this.uploadUtil.uploadAlarm("ISAPI协议报警信息", new String(pAlarmer.sDeviceIP).trim(), picFilename,jsonfilename );
                 break;
             case HCNetSDK.COMM_VCA_ALARM:  // 智能检测通用报警(Json或者XML数据结构)
                 sAlarmInfo = new String(pAlarmer.sDeviceIP);
@@ -441,7 +426,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     case 45: //持续检测
                         System.out.println("持续检测事件触发");
                     default:
-                        System.out.println("行为事件类型:"+strVcaAlarm.struRuleInfo.wEventTypeEx);
+                        System.out.println("行为事件类型:" + strVcaAlarm.struRuleInfo.wEventTypeEx);
                         break;
                 }
                 break;
@@ -453,8 +438,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 strACSInfo.read();
                 /**门禁事件的详细信息解析，通过主次类型的可以判断当前的具体门禁类型，例如（主类型：0X5 次类型：0x4b 表示人脸认证通过，
                  主类型：0X5 次类型：0x4c 表示人脸认证失败）*/
-                System.out.println("【门禁主机报警信息】卡号：" + new String(strACSInfo.struAcsEventInfo.byCardNo).trim() + "，卡类型：" +
-                        strACSInfo.struAcsEventInfo.byCardType + "，报警主类型：" + Integer.toHexString(strACSInfo.dwMajor) + "，报警次类型：" + Integer.toHexString(strACSInfo.dwMinor));
+                System.out.println("【门禁主机报警信息】卡号：" + new String(strACSInfo.struAcsEventInfo.byCardNo).trim() + "，卡类型：" + strACSInfo.struAcsEventInfo.byCardType + "，报警主类型：" + Integer.toHexString(strACSInfo.dwMajor) + "，报警次类型：" + Integer.toHexString(strACSInfo.dwMinor));
                 System.out.println("工号1：" + strACSInfo.struAcsEventInfo.dwEmployeeNo);
                 //温度信息（如果设备支持测温功能，人脸温度信息从NET_DVR_ACS_EVENT_INFO_EXTEND_V20结构体获取）
                 if (strACSInfo.byAcsEventInfoExtendV20 == 1) {
@@ -480,8 +464,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                  * 报警时间
                  */
                 String year = Integer.toString(strACSInfo.struTime.dwYear);
-                String SwipeTime = year + strACSInfo.struTime.dwMonth + strACSInfo.struTime.dwDay + strACSInfo.struTime.dwHour + strACSInfo.struTime.dwMinute +
-                        strACSInfo.struTime.dwSecond;
+                String SwipeTime = year + strACSInfo.struTime.dwMonth + strACSInfo.struTime.dwDay + strACSInfo.struTime.dwHour + strACSInfo.struTime.dwMinute + strACSInfo.struTime.dwSecond;
                 if (strACSInfo.dwPicDataLen > 0) {
 //                    SimpleDateFormat sf = new SimpleDateFormat("yyyyMMddHHmmss");
 //                    String newName = sf.format(new Date());
@@ -520,15 +503,13 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                  * 身份证信息
                  */
                 String IDnum = new String(strIDCardInfo.struIDCardCfg.byIDNum).trim();
-                System.out.println("【身份证信息】：身份证号码：" + IDnum + "，姓名：" +
-                        new String(strIDCardInfo.struIDCardCfg.byName).trim() + "，住址：" + new String(strIDCardInfo.struIDCardCfg.byAddr));
+                System.out.println("【身份证信息】：身份证号码：" + IDnum + "，姓名：" + new String(strIDCardInfo.struIDCardCfg.byName).trim() + "，住址：" + new String(strIDCardInfo.struIDCardCfg.byAddr));
 
                 /**
                  * 报警时间
                  */
                 String year1 = Integer.toString(strIDCardInfo.struSwipeTime.wYear);
-                String SwipeTime1 = year1 + strIDCardInfo.struSwipeTime.byMonth + strIDCardInfo.struSwipeTime.byDay + strIDCardInfo.struSwipeTime.byHour + strIDCardInfo.struSwipeTime.byMinute +
-                        strIDCardInfo.struSwipeTime.bySecond;
+                String SwipeTime1 = year1 + strIDCardInfo.struSwipeTime.byMonth + strIDCardInfo.struSwipeTime.byDay + strIDCardInfo.struSwipeTime.byHour + strIDCardInfo.struSwipeTime.byMinute + strIDCardInfo.struSwipeTime.bySecond;
                 /**
                  * 保存图片
                  */
@@ -589,11 +570,9 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 System.out.println("可视对讲报警触发");
 
 
-
                 break;
             case HCNetSDK.COMM_UPLOAD_VIDEO_INTERCOM_EVENT: //可视对讲事件记录信息
                 System.out.println("可视对讲事件记录报警触发");
-
 
 
                 break;
@@ -605,28 +584,21 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pFaceSnapInfo = strFaceSnapInfo.getPointer();
                 pFaceSnapInfo.write(0, pAlarmInfo.getByteArray(0, strFaceSnapInfo.size()), 0, strFaceSnapInfo.size());
                 strFaceSnapInfo.read();
-                
+
                 //事件时间
-                int dwYear = (strFaceSnapInfo.dwAbsTime>>26)+2000;
-                int dwMonth = (strFaceSnapInfo.dwAbsTime>>22)&15;
-                int dwDay = (strFaceSnapInfo.dwAbsTime>>17)&31;
-                int dwHour = (strFaceSnapInfo.dwAbsTime>>12)&31;
-                int dwMinute = (strFaceSnapInfo.dwAbsTime>>6)&63;
-                int dwSecond = (strFaceSnapInfo.dwAbsTime>>0)&63;
-                
-                String strAbsTime = "" + String.format("%04d", dwYear) +
-                        String.format("%02d", dwMonth) +
-                        String.format("%02d", dwDay) +
-                        String.format("%02d", dwHour) +
-                        String.format("%02d", dwMinute) +
-                        String.format("%02d", dwSecond);
-     
+                int dwYear = (strFaceSnapInfo.dwAbsTime >> 26) + 2000;
+                int dwMonth = (strFaceSnapInfo.dwAbsTime >> 22) & 15;
+                int dwDay = (strFaceSnapInfo.dwAbsTime >> 17) & 31;
+                int dwHour = (strFaceSnapInfo.dwAbsTime >> 12) & 31;
+                int dwMinute = (strFaceSnapInfo.dwAbsTime >> 6) & 63;
+                int dwSecond = (strFaceSnapInfo.dwAbsTime >> 0) & 63;
+
+                String strAbsTime = "" + String.format("%04d", dwYear) + String.format("%02d", dwMonth) + String.format("%02d", dwDay) + String.format("%02d", dwHour) + String.format("%02d", dwMinute) + String.format("%02d", dwSecond);
+
                 //人脸属性信息
-                String sFaceAlarmInfo = "Abs时间:" + strAbsTime + ",年龄:" + strFaceSnapInfo.struFeature.byAge + 
-                		",性别：" + strFaceSnapInfo.struFeature.bySex + ",是否戴口罩：" +
-                        strFaceSnapInfo.struFeature.byMask + ",是否微笑：" + strFaceSnapInfo.struFeature.bySmile;
+                String sFaceAlarmInfo = "Abs时间:" + strAbsTime + ",年龄:" + strFaceSnapInfo.struFeature.byAge + ",性别：" + strFaceSnapInfo.struFeature.bySex + ",是否戴口罩：" + strFaceSnapInfo.struFeature.byMask + ",是否微笑：" + strFaceSnapInfo.struFeature.bySmile;
                 System.out.println("人脸信息：" + sFaceAlarmInfo);
-                
+
                 //人脸测温信息
                 if (strFaceSnapInfo.byAddInfo == 1) {
                     HCNetSDK.NET_VCA_FACESNAP_ADDINFO strAddInfo = new HCNetSDK.NET_VCA_FACESNAP_ADDINFO();
@@ -635,8 +607,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     pAddInfo.write(0, strFaceSnapInfo.pAddInfoBuffer.getByteArray(0, strAddInfo.size()), 0, strAddInfo.size());
                     strAddInfo.read();
 
-                    String sTemperatureInfo = "测温是否开启：" + strAddInfo.byFaceSnapThermometryEnabled + "人脸温度：" + strAddInfo.fFaceTemperature + "温度是否异常"
-                            + strAddInfo.byIsAbnomalTemperature + "报警温度阈值：" + strAddInfo.fAlarmTemperature;
+                    String sTemperatureInfo = "测温是否开启：" + strAddInfo.byFaceSnapThermometryEnabled + "人脸温度：" + strAddInfo.fFaceTemperature + "温度是否异常" + strAddInfo.byIsAbnomalTemperature + "报警温度阈值：" + strAddInfo.fAlarmTemperature;
                     System.out.println("人脸温度信息:" + sTemperatureInfo);
 
                 }
@@ -673,7 +644,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 pFaceSnapMatch.write(0, pAlarmInfo.getByteArray(0, strFaceSnapMatch.size()), 0, strFaceSnapMatch.size());
                 strFaceSnapMatch.read();
                 //比对结果，0-保留，1-比对成功，2-比对失败
-                String sFaceSnapMatchInfo="比对结果："+strFaceSnapMatch.byContrastStatus+",相似度："+strFaceSnapMatch.fSimilarity;
+                String sFaceSnapMatchInfo = "比对结果：" + strFaceSnapMatch.byContrastStatus + ",相似度：" + strFaceSnapMatch.fSimilarity;
                 System.out.println(sFaceSnapMatchInfo);
                 if (strFaceSnapMatch.struBlockListInfo.dwFDIDLen > 0) {
                     long offset1 = 0;
@@ -697,7 +668,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 try {
                     Data = new FileOutputStream(AddtionFile);
                     //将字节写入文件
-                    ByteBuffer dataBuffer = strFaceSnapMatch.struBlockListInfo.struBlockListInfo.pFCAdditionInfoBuffer.getByteBuffer(0, strFaceSnapMatch.struBlockListInfo.struBlockListInfo.dwFCAdditionInfoLen );
+                    ByteBuffer dataBuffer = strFaceSnapMatch.struBlockListInfo.struBlockListInfo.pFCAdditionInfoBuffer.getByteBuffer(0, strFaceSnapMatch.struBlockListInfo.struBlockListInfo.dwFCAdditionInfoLen);
                     byte[] dataByte = new byte[dwBufLen];
                     dataBuffer.rewind();
                     dataBuffer.get(dataByte);
@@ -823,27 +794,14 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 // byMode=0-实时统计结果(联合体中struStatFrame有效)，
                 if (strPDCResult.byMode == 0) {
                     strPDCResult.uStatModeParam.setType(HCNetSDK.NET_DVR_STATFRAME.class);
-                    String sAlarmPDC0Info = "实时客流量统计，进入人数：" + strPDCResult.dwEnterNum + "，离开人数：" + strPDCResult.dwLeaveNum +
-                            ", byMode:" + strPDCResult.byMode + ", dwRelativeTime:" + strPDCResult.uStatModeParam.struStatFrame.dwRelativeTime +
-                            ", dwAbsTime:" + strPDCResult.uStatModeParam.struStatFrame.dwAbsTime;
+                    String sAlarmPDC0Info = "实时客流量统计，进入人数：" + strPDCResult.dwEnterNum + "，离开人数：" + strPDCResult.dwLeaveNum + ", byMode:" + strPDCResult.byMode + ", dwRelativeTime:" + strPDCResult.uStatModeParam.struStatFrame.dwRelativeTime + ", dwAbsTime:" + strPDCResult.uStatModeParam.struStatFrame.dwAbsTime;
                 }
                 // byMode=1-周期统计结果(联合体中struStatTime有效)，
                 if (strPDCResult.byMode == 1) {
                     strPDCResult.uStatModeParam.setType(HCNetSDK.NET_DVR_STATTIME.class);
-                    String strtmStart = "" + String.format("%04d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwYear) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwMonth) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwDay) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwHour) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwMinute) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwSecond);
-                    String strtmEnd = "" + String.format("%04d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwYear) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwMonth) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwDay) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwHour) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwMinute) +
-                            String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwSecond);
-                    String sAlarmPDC1Info = "周期性客流量统计，进入人数：" + strPDCResult.dwEnterNum + "，离开人数：" + strPDCResult.dwLeaveNum +
-                            ", byMode:" + strPDCResult.byMode + ", tmStart:" + strtmStart + ",tmEnd :" + strtmEnd;
+                    String strtmStart = "" + String.format("%04d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwYear) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwMonth) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwDay) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwHour) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwMinute) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmStart.dwSecond);
+                    String strtmEnd = "" + String.format("%04d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwYear) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwMonth) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwDay) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwHour) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwMinute) + String.format("%02d", strPDCResult.uStatModeParam.struStatTime.tmEnd.dwSecond);
+                    String sAlarmPDC1Info = "周期性客流量统计，进入人数：" + strPDCResult.dwEnterNum + "，离开人数：" + strPDCResult.dwLeaveNum + ", byMode:" + strPDCResult.byMode + ", tmStart:" + strtmStart + ",tmEnd :" + strtmEnd;
                 }
                 break;
             case HCNetSDK.COMM_ALARM_V30:  //移动侦测、视频丢失、遮挡、IO信号量等报警信息(V3.0以上版本支持的设备)
@@ -868,8 +826,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pTemInfo = struTemInfo.getPointer();
                 pTemInfo.write(0, pAlarmInfo.getByteArray(0, struTemInfo.size()), 0, struTemInfo.size());
                 struTemInfo.read();
-                String sThermAlarmInfo = "规则ID:" + struTemInfo.byRuleID + "预置点号：" + struTemInfo.wPresetNo + "报警等级：" + struTemInfo.byAlarmLevel + "报警类型：" +
-                        struTemInfo.byAlarmType + "当前温度：" + struTemInfo.fCurrTemperature;
+                String sThermAlarmInfo = "规则ID:" + struTemInfo.byRuleID + "预置点号：" + struTemInfo.wPresetNo + "报警等级：" + struTemInfo.byAlarmLevel + "报警类型：" + struTemInfo.byAlarmType + "当前温度：" + struTemInfo.fCurrTemperature;
                 System.out.println(sThermAlarmInfo);
                 //可见光图片保存
                 if ((struTemInfo.dwPicLen > 0) && (struTemInfo.byPicTransType == 0)) {
@@ -989,8 +946,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pShipAlarm = struShipAlarm.getPointer();
                 pShipAlarm.write(0, pAlarmInfo.getByteArray(0, struShipAlarm.size()), 0, struShipAlarm.size());
                 struShipAlarm.read();
-                String sShipAlarm = "绝对时间：" + struShipAlarm.dwAbsTime + ",正跨越检测线的船只数:" + struShipAlarm.byShipsNum + ",船头检测的船只数 :" + struShipAlarm.byShipsNumHead
-                        + ", 船尾检测的船只数 :" + struShipAlarm.byShipsNumEnd;
+                String sShipAlarm = "绝对时间：" + struShipAlarm.dwAbsTime + ",正跨越检测线的船只数:" + struShipAlarm.byShipsNum + ",船头检测的船只数 :" + struShipAlarm.byShipsNumHead + ", 船尾检测的船只数 :" + struShipAlarm.byShipsNumEnd;
                 System.out.println(sShipAlarm);
                 //可见光图片保存
                 if ((struShipAlarm.dwPicLen > 0) && (struShipAlarm.byPicTransType == 0)) {
@@ -1051,8 +1007,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 Pointer pFireDecAlarm = struFireDecAlarm.getPointer();
                 pFireDecAlarm.write(0, pAlarmInfo.getByteArray(0, struFireDecAlarm.size()), 0, struFireDecAlarm.size());
                 struFireDecAlarm.read();
-                String sFireDecAlarmInfo = "绝对时间：" + struFireDecAlarm.dwAbsTime + ",报警子类型：" + struFireDecAlarm.byAlarmSubType + ",火点最高温度 :" +
-                        struFireDecAlarm.wFireMaxTemperature + ",火点目标距离：" + struFireDecAlarm.wTargetDistance;
+                String sFireDecAlarmInfo = "绝对时间：" + struFireDecAlarm.dwAbsTime + ",报警子类型：" + struFireDecAlarm.byAlarmSubType + ",火点最高温度 :" + struFireDecAlarm.wFireMaxTemperature + ",火点目标距离：" + struFireDecAlarm.wTargetDistance;
                 System.out.println(sFireDecAlarmInfo);
                 //可见光图片保存
                 if ((struFireDecAlarm.dwVisiblePicLen > 0) && (struFireDecAlarm.byPicTransType == 0)) {
@@ -1116,19 +1071,12 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 System.out.println("视频任务ID" + new String(struAIOPVideo.szTaskID));
                 System.out.println("通道号：" + struAIOPVideo.dwChannel);
                 System.out.println("检测模型包ID" + new String(struAIOPVideo.szMPID));
-                String strTime = String.format("%04d", struAIOPVideo.struTime.wYear) +
-                        String.format("%02d", struAIOPVideo.struTime.wMonth) +
-                        String.format("%02d", struAIOPVideo.struTime.wDay) +
-                        String.format("%02d", struAIOPVideo.struTime.wHour) +
-                        String.format("%02d", struAIOPVideo.struTime.wMinute) +
-                        String.format("%02d", struAIOPVideo.struTime.wSecond) +
-                        String.format("%03d", struAIOPVideo.struTime.wMilliSec);
+                String strTime = String.format("%04d", struAIOPVideo.struTime.wYear) + String.format("%02d", struAIOPVideo.struTime.wMonth) + String.format("%02d", struAIOPVideo.struTime.wDay) + String.format("%02d", struAIOPVideo.struTime.wHour) + String.format("%02d", struAIOPVideo.struTime.wMinute) + String.format("%02d", struAIOPVideo.struTime.wSecond) + String.format("%03d", struAIOPVideo.struTime.wMilliSec);
                 //AIOPData数据
                 if (struAIOPVideo.dwAIOPDataSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + strTime + "_VideoData.json";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + strTime + "_VideoData.json";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1150,8 +1098,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 if (struAIOPVideo.dwPictureSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + strTime + "_VideoPic.jpg";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + strTime + "_VideoPic.jpg";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1179,19 +1126,12 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 struAIOPPic.read();
                 System.out.println("图片ID：" + new String(struAIOPPic.szPID));
                 System.out.println("检测模型包ID：" + new String(struAIOPPic.szMPID));
-                String strPicTime = "" + String.format("%04d", struAIOPPic.struTime.wYear) +
-                        String.format("%02d", struAIOPPic.struTime.wMonth) +
-                        String.format("%02d", struAIOPPic.struTime.wDay) +
-                        String.format("%02d", struAIOPPic.struTime.wHour) +
-                        String.format("%02d", struAIOPPic.struTime.wMinute) +
-                        String.format("%02d", struAIOPPic.struTime.wSecond) +
-                        String.format("%03d", struAIOPPic.struTime.wMilliSec);
+                String strPicTime = "" + String.format("%04d", struAIOPPic.struTime.wYear) + String.format("%02d", struAIOPPic.struTime.wMonth) + String.format("%02d", struAIOPPic.struTime.wDay) + String.format("%02d", struAIOPPic.struTime.wHour) + String.format("%02d", struAIOPPic.struTime.wMinute) + String.format("%02d", struAIOPPic.struTime.wSecond) + String.format("%03d", struAIOPPic.struTime.wMilliSec);
                 //AIOPData数据
                 if (struAIOPPic.dwAIOPDataSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + strPicTime + "_AIO_PicData.json";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + strPicTime + "_AIO_PicData.json";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1221,19 +1161,12 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 strAiopPollingPic.read();
                 System.out.println("通道号：" + strAiopPollingPic.dwChannel);
                 System.out.println("轮询抓图任务ID：" + new String(strAiopPollingPic.szTaskID));
-                String strPollingPicTime = "" + String.format("%04d", strAiopPollingPic.struTime.wYear) +
-                        String.format("%02d", strAiopPollingPic.struTime.wMonth) +
-                        String.format("%02d", strAiopPollingPic.struTime.wDay) +
-                        String.format("%02d", strAiopPollingPic.struTime.wHour) +
-                        String.format("%02d", strAiopPollingPic.struTime.wMinute) +
-                        String.format("%02d", strAiopPollingPic.struTime.wSecond) +
-                        String.format("%03d", strAiopPollingPic.struTime.wMilliSec);
+                String strPollingPicTime = "" + String.format("%04d", strAiopPollingPic.struTime.wYear) + String.format("%02d", strAiopPollingPic.struTime.wMonth) + String.format("%02d", strAiopPollingPic.struTime.wDay) + String.format("%02d", strAiopPollingPic.struTime.wHour) + String.format("%02d", strAiopPollingPic.struTime.wMinute) + String.format("%02d", strAiopPollingPic.struTime.wSecond) + String.format("%03d", strAiopPollingPic.struTime.wMilliSec);
                 //AIOPData数据保存
                 if (strAiopPollingPic.dwAIOPDataSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + strPollingPicTime + "_PollingPicData.json";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + strPollingPicTime + "_PollingPicData.json";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1255,8 +1188,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 if (strAiopPollingPic.dwPictureSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + strPollingPicTime + "_PollingPic.jpg";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + strPollingPicTime + "_PollingPic.jpg";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1286,19 +1218,12 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 strAiopPollingVideo.read();
                 System.out.println("通道号：" + strAiopPollingVideo.dwChannel);
                 System.out.println("轮询视频任务ID：" + new String(strAiopPollingVideo.szTaskID));
-                String AiopPollingVideoTime = "" + String.format("%04d", strAiopPollingVideo.struTime.wYear) +
-                        String.format("%02d", strAiopPollingVideo.struTime.wMonth) +
-                        String.format("%02d", strAiopPollingVideo.struTime.wDay) +
-                        String.format("%02d", strAiopPollingVideo.struTime.wHour) +
-                        String.format("%02d", strAiopPollingVideo.struTime.wMinute) +
-                        String.format("%02d", strAiopPollingVideo.struTime.wSecond) +
-                        String.format("%03d", strAiopPollingVideo.struTime.wMilliSec);
+                String AiopPollingVideoTime = "" + String.format("%04d", strAiopPollingVideo.struTime.wYear) + String.format("%02d", strAiopPollingVideo.struTime.wMonth) + String.format("%02d", strAiopPollingVideo.struTime.wDay) + String.format("%02d", strAiopPollingVideo.struTime.wHour) + String.format("%02d", strAiopPollingVideo.struTime.wMinute) + String.format("%02d", strAiopPollingVideo.struTime.wSecond) + String.format("%03d", strAiopPollingVideo.struTime.wMilliSec);
                 //AIOPData数据保存
                 if (strAiopPollingVideo.dwAIOPDataSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + AiopPollingVideoTime + "_PollingVideoData.json";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideoData.json";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1320,8 +1245,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 if (strAiopPollingVideo.dwPictureSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() +
-                                "_" + AiopPollingVideoTime + "_PollingVideo.jpg";
+                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideo.jpg";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1345,6 +1269,8 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 break;
         }
     }
+
+
 }
 
 

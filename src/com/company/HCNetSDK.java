@@ -7,6 +7,7 @@ import com.sun.jna.ptr.ByteByReference;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.ShortByReference;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -9426,7 +9427,7 @@ DVR实现巡航数据结构
     }
 
     public static interface FMSGCallBack_V31 extends Callback {
-        public boolean invoke(int lCommand, NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser);
+        public boolean invoke(int lCommand, NET_DVR_ALARMER pAlarmer, Pointer pAlarmInfo, int dwBufLen, Pointer pUser) throws IOException;
     }
 
     public static interface FMessCallBack extends Callback {

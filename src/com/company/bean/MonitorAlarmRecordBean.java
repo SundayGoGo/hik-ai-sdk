@@ -14,7 +14,6 @@ public class MonitorAlarmRecordBean implements Serializable {
     private static final long serialVersionUID = -35323091798796634L;
 
 
-    private Long id;
 
     private Date alarmTime;
 
@@ -26,13 +25,8 @@ public class MonitorAlarmRecordBean implements Serializable {
 
     private String photo;
 
-    public Long getId() {
-        return id;
-    }
+    private  String file; // 源文件
 
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public Date getAlarmTime() {
         return alarmTime;
@@ -74,6 +68,24 @@ public class MonitorAlarmRecordBean implements Serializable {
         this.photo = photo;
     }
 
+    public String getFile() {
+        return file;
+    }
 
+    public void setFile(String file) {
+        this.file = file;
+    }
+
+    @Override
+    public String toString() {
+        return "MonitorAlarmRecordBean{" +
+                ", alarmTime=" + alarmTime +
+                ", alarmType='" + alarmType + '\'' +
+                ", channel='" + channel + '\'' +
+                ", equipment='" + equipment + '\'' +
+                ", photo='" + photo + '\'' +
+                ", file='" + file + '\'' +
+                '}';
+    }
 }
 
