@@ -1,6 +1,8 @@
 package com.company;
 
+import cn.hutool.core.codec.Base64Encoder;
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.log.StaticLog;
@@ -35,6 +37,8 @@ public class Main {
      * @param args
      */
     public static void main(String[] args) throws Exception {
+
+
         UploadUtil uploadUtil=new UploadUtil();
 
 

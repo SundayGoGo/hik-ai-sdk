@@ -25,6 +25,8 @@ public class MonitorAlarmRecordBean implements Serializable {
 
     private String photo;
 
+    private String base64;
+
     private  String file; // 源文件
 
 
@@ -86,6 +88,14 @@ public class MonitorAlarmRecordBean implements Serializable {
                 ", photo='" + photo + '\'' +
                 ", file='" + file + '\'' +
                 '}';
+    }
+
+    public String getBase64() {
+        return base64;
+    }
+
+    public void setBase64(String base64) {
+        this.base64 = base64;
     }
 }
 

@@ -1,15 +1,18 @@
 package com.company;
 
+import cn.hutool.core.codec.Base64Encoder;
+import cn.hutool.core.img.ImgUtil;
+import cn.hutool.core.io.FileUtil;
 import com.company.CommonMethod.CommonUtil;
 import com.company.util.UploadUtil;
 import com.sun.jna.Pointer;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 
 
@@ -303,6 +306,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 }
                 //图片数据保存
                 String picFilename = "";
+                String resultBase64Str = "";
                 for (int i = 0; i < struEventISAPI.byPicturesNumber; i++) {
                     HCNetSDK.NET_DVR_ALARM_ISAPI_PICDATA struPicData = new HCNetSDK.NET_DVR_ALARM_ISAPI_PICDATA();
                     struPicData.write();
@@ -322,6 +326,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                         buffers.get(bytes);
                         fout.write(bytes);
                         fout.close();
+                        resultBase64Str = convertImageToBase64(picFilename);
                     } catch (FileNotFoundException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -331,7 +336,9 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     }
                 }
                 // TODO: 保存数据
-                this.uploadUtil.uploadAlarm("ISAPI协议报警信息", new String(pAlarmer.sDeviceIP).trim(), picFilename,jsonfilename );
+                if(struEventISAPI.byDataType==2){
+                    this.uploadUtil.uploadAlarm("ISAPI协议报警信息", new String(pAlarmer.sDeviceIP).trim(), picFilename,jsonfilename,resultBase64Str );
+                }
                 break;
             case HCNetSDK.COMM_VCA_ALARM:  // 智能检测通用报警(Json或者XML数据结构)
                 sAlarmInfo = new String(pAlarmer.sDeviceIP);
@@ -1220,10 +1227,13 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                 System.out.println("轮询视频任务ID：" + new String(strAiopPollingVideo.szTaskID));
                 String AiopPollingVideoTime = "" + String.format("%04d", strAiopPollingVideo.struTime.wYear) + String.format("%02d", strAiopPollingVideo.struTime.wMonth) + String.format("%02d", strAiopPollingVideo.struTime.wDay) + String.format("%02d", strAiopPollingVideo.struTime.wHour) + String.format("%02d", strAiopPollingVideo.struTime.wMinute) + String.format("%02d", strAiopPollingVideo.struTime.wSecond) + String.format("%03d", strAiopPollingVideo.struTime.wMilliSec);
                 //AIOPData数据保存
+                String resultBase64Str1 = "";
+
+                String filename="";
                 if (strAiopPollingVideo.dwAIOPDataSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideoData.json";
+                         filename = "pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideoData.jpg";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1233,6 +1243,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                         buffers.get(bytes);
                         fout.write(bytes);
                         fout.close();
+
                     } catch (FileNotFoundException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -1242,10 +1253,11 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                     }
                 }
                 //对应分析图片数据
+                 picFilename = "";
                 if (strAiopPollingVideo.dwPictureSize > 0) {
                     FileOutputStream fout;
                     try {
-                        String filename = "../pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideo.jpg";
+                        picFilename = "pic/" + new String(pAlarmer.sDeviceIP).trim() + "_" + AiopPollingVideoTime + "_PollingVideo.jpg";
                         fout = new FileOutputStream(filename);
                         //将字节写入文件
                         long offset = 0;
@@ -1255,6 +1267,7 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                         buffers.get(bytes);
                         fout.write(bytes);
                         fout.close();
+
                     } catch (FileNotFoundException e) {
                         // TODO Auto-generated catch block
                         e.printStackTrace();
@@ -1263,11 +1276,25 @@ public class FMSGCallBack_V31 implements HCNetSDK.FMSGCallBack_V31 {
                         e.printStackTrace();
                     }
                 }
+                resultBase64Str1 = convertImageToBase64(filename);
+                this.uploadUtil.uploadAlarm("AI开放平台接入轮询视频检测报警事件上传", new String(pAlarmer.sDeviceIP).trim(), picFilename,filename ,resultBase64Str1);
+
                 break;
             default:
                 System.out.println("报警类型" + Integer.toHexString(lCommand));
                 break;
         }
+    }
+
+    private  String convertImageToBase64(String imagePath) throws IOException {
+        // 读取图片文件为字节数组
+        byte[] imageData = FileUtil.readBytes(imagePath);
+
+        // 将字节数组转换为Base64编码
+        String base64String = Base64Encoder.encode(imageData);
+
+        return base64String;
+
     }
 
 

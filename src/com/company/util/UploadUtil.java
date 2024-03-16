@@ -21,7 +21,7 @@ public class UploadUtil {
 
     private final String USER_AGENT = "Mozilla/5.0";
 
-    public void uploadAlarm(String alarm, String name, String photo, String file) throws IOException {
+    public void uploadAlarm(String alarm, String name, String photo, String file,String base64) throws IOException {
 
         char cbuf[] = new char[10000];
         InputStreamReader inputs = new InputStreamReader(new FileInputStream(new File(System.getProperty("user.dir") + "/config.json")), StandardCharsets.UTF_8);
@@ -39,6 +39,7 @@ public class UploadUtil {
         monitorAlarmRecordBean.setPhoto(photo);
         monitorAlarmRecordBean.setFile(file);
         monitorAlarmRecordBean.setAlarmType(alarm);
+        monitorAlarmRecordBean.setBase64(base64);
         monitorAlarmRecordBean.setEquipment(name.trim().split("\u0000")[0]);
 
         String url = StrUtil.format("http://{}/webhook/monitor/alarm/record", jsonObj.get("uploadIp"));
@@ -56,7 +57,7 @@ public class UploadUtil {
     public void uploadAlarmAsync(String alarm, String name, String photo, String file) {
         ThreadUtil.execAsync(() -> {
             try {
-                this.uploadAlarm(alarm, name, photo, file);
+                this.uploadAlarm(alarm, name, photo, file,"");
             } catch (IOException e) {
                 e.printStackTrace();
             }
